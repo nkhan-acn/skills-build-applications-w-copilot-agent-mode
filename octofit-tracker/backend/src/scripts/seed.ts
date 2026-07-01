@@ -1,15 +1,13 @@
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { Activity, LeaderboardEntry, Team, User, Workout } from '../models';
+import { connectToDatabase } from '../database';
 
 dotenv.config();
-
-const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/octofit_db';
 
 async function seedDatabase() {
   console.log('Seed the octofit_db database with test data');
 
-  await mongoose.connect(mongoUri);
+  await connectToDatabase();
   console.log('Connected to MongoDB for seeding');
 
   await Promise.all([
@@ -127,7 +125,6 @@ async function seedDatabase() {
   ]);
 
   console.log(`Seeded ${users.length} users, ${teams.length} teams, activities, leaderboard entries, and workouts.`);
-  await mongoose.disconnect();
 }
 
 seedDatabase().catch((error) => {
