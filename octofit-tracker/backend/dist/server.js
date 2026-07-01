@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const mongoose_1 = __importDefault(require("mongoose"));
+const models_1 = require("./models");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = Number(process.env.PORT || 8000);
@@ -14,26 +15,6 @@ const codespaceName = process.env.CODESPACE_NAME;
 const baseUrl = codespaceName
     ? `https://${codespaceName}-8000.app.github.dev`
     : `http://localhost:${port}`;
-const users = [
-    { id: 1, name: 'Ava', email: 'ava@example.com' },
-    { id: 2, name: 'Noah', email: 'noah@example.com' },
-];
-const teams = [
-    { id: 1, name: 'Storm Squad', members: ['Ava', 'Noah'] },
-    { id: 2, name: 'River Runners', members: ['Mina'] },
-];
-const activities = [
-    { id: 1, user: 'Ava', type: 'run', minutes: 30 },
-    { id: 2, user: 'Noah', type: 'strength', minutes: 45 },
-];
-const leaderboard = [
-    { id: 1, name: 'Ava', points: 1200 },
-    { id: 2, name: 'Noah', points: 1100 },
-];
-const workouts = [
-    { id: 1, title: 'Morning Mobility', difficulty: 'easy', duration: 20 },
-    { id: 2, title: 'Interval Sprint', difficulty: 'hard', duration: 25 },
-];
 app.use(express_1.default.json());
 app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
@@ -41,64 +22,70 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/config', (_req, res) => {
     res.json({ baseUrl, port, environment: process.env.NODE_ENV || 'development' });
 });
-app.get('/api/users/', (_req, res) => {
+app.get('/api/users/', async (_req, res) => {
+    const users = await models_1.User.find().lean();
     res.json(users);
 });
-app.post('/api/users/', (req, res) => {
-    const { name, email } = req.body;
+app.post('/api/users/', async (req, res) => {
+    const { name, email, age, fitnessGoal, location } = req.body;
     if (!name || !email) {
         return res.status(400).json({ error: 'Name and email are required.' });
     }
-    const user = { id: users.length + 1, name, email };
-    users.push(user);
+    const user = await models_1.User.create({ name, email, age, fitnessGoal, location });
     return res.status(201).json(user);
 });
-app.get('/api/teams/', (_req, res) => {
+app.get('/api/teams/', async (_req, res) => {
+    const teams = await models_1.Team.find().populate('members').lean();
     res.json(teams);
 });
-app.post('/api/teams/', (req, res) => {
-    const { name, members } = req.body;
-    if (!name || !Array.isArray(members)) {
-        return res.status(400).json({ error: 'Name and members array are required.' });
+app.post('/api/teams/', async (req, res) => {
+    const { name, sport, members } = req.body;
+    if (!name || !sport || !Array.isArray(members)) {
+        return res.status(400).json({ error: 'Name, sport, and members array are required.' });
     }
-    const team = { id: teams.length + 1, name, members };
-    teams.push(team);
+    const team = await models_1.Team.create({ name, sport, members });
     return res.status(201).json(team);
 });
-app.get('/api/activities/', (_req, res) => {
+app.get('/api/activities/', async (_req, res) => {
+    const activities = await models_1.Activity.find().populate('user').lean();
     res.json(activities);
 });
-app.post('/api/activities/', (req, res) => {
-    const { user, type, minutes } = req.body;
-    if (!user || !type || typeof minutes !== 'number') {
-        return res.status(400).json({ error: 'User, type, and minutes are required.' });
+app.post('/api/activities/', async (req, res) => {
+    const { user, type, durationMinutes, caloriesBurned, date } = req.body;
+    if (!user || !type || typeof durationMinutes !== 'number' || typeof caloriesBurned !== 'number') {
+        return res.status(400).json({ error: 'User, type, durationMinutes, and caloriesBurned are required.' });
     }
-    const activity = { id: activities.length + 1, user, type, minutes };
-    activities.push(activity);
+    const activity = await models_1.Activity.create({
+        user,
+        type,
+        durationMinutes,
+        caloriesBurned,
+        date: date ? new Date(date) : undefined
+    });
     return res.status(201).json(activity);
 });
-app.get('/api/leaderboard/', (_req, res) => {
+app.get('/api/leaderboard/', async (_req, res) => {
+    const leaderboard = await models_1.LeaderboardEntry.find().populate('user').lean();
     res.json(leaderboard);
 });
-app.post('/api/leaderboard/', (req, res) => {
-    const { name, points } = req.body;
-    if (!name || typeof points !== 'number') {
-        return res.status(400).json({ error: 'Name and points are required.' });
+app.post('/api/leaderboard/', async (req, res) => {
+    const { user, points, streak, rank } = req.body;
+    if (!user || typeof points !== 'number') {
+        return res.status(400).json({ error: 'User and points are required.' });
     }
-    const entry = { id: leaderboard.length + 1, name, points };
-    leaderboard.push(entry);
+    const entry = await models_1.LeaderboardEntry.create({ user, points, streak, rank });
     return res.status(201).json(entry);
 });
-app.get('/api/workouts/', (_req, res) => {
+app.get('/api/workouts/', async (_req, res) => {
+    const workouts = await models_1.Workout.find().lean();
     res.json(workouts);
 });
-app.post('/api/workouts/', (req, res) => {
-    const { title, difficulty, duration } = req.body;
-    if (!title || !difficulty || typeof duration !== 'number') {
-        return res.status(400).json({ error: 'Title, difficulty, and duration are required.' });
+app.post('/api/workouts/', async (req, res) => {
+    const { title, difficulty, durationMinutes, focusArea, equipment } = req.body;
+    if (!title || !difficulty || typeof durationMinutes !== 'number' || !focusArea) {
+        return res.status(400).json({ error: 'Title, difficulty, durationMinutes, and focusArea are required.' });
     }
-    const workout = { id: workouts.length + 1, title, difficulty, duration };
-    workouts.push(workout);
+    const workout = await models_1.Workout.create({ title, difficulty, durationMinutes, focusArea, equipment });
     return res.status(201).json(workout);
 });
 mongoose_1.default
