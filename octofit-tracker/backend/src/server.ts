@@ -1,7 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import dotenv from 'dotenv';
 import { Activity, LeaderboardEntry, Team, User, Workout } from './models';
-import { connectToDatabase } from './database';
+import { connectToDatabase } from './config/database';
 
 dotenv.config();
 

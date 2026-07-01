@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
 const models_1 = require("../models");
-const database_1 = require("../database");
+const database_1 = require("../config/database");
 dotenv_1.default.config();
 async function seedDatabase() {
     console.log('Seed the octofit_db database with test data');
